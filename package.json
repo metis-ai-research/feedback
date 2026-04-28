@@ -1,0 +1,75 @@
+{
+  "name": "@metis-ai-research/feedback",
+  "version": "0.1.1",
+  "description": "Drop-in feedback widget that posts to Linear (or your adapter of choice).",
+  "license": "MIT",
+  "author": "Metis AI Research",
+  "type": "module",
+  "keywords": [
+    "feedback",
+    "feedback-widget",
+    "linear",
+    "bug-report",
+    "react",
+    "nextjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metis-ai-research/feedback.git"
+  },
+  "homepage": "https://github.com/metis-ai-research/feedback#readme",
+  "bugs": {
+    "url": "https://github.com/metis-ai-research/feedback/issues"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
+    },
+    "./adapters/linear": {
+      "types": "./dist/adapters/linear.d.ts",
+      "import": "./dist/adapters/linear.js",
+      "require": "./dist/adapters/linear.cjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "modern-screenshot": "^4.4.39",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tailwindcss": "^3.4.19",
+    "tsup": "^8.3.5",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.9"
+  }
+}

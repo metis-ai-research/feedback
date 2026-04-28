@@ -1,0 +1,13 @@
+/*
+ * @metis/feedback — widget styles.
+ *
+ * This file is the input to Tailwind. The package's build runs Tailwind's
+ * CLI against `src/client/**` and emits the used utilities into
+ * `dist/styles.css`, which consumers import once.
+ *
+ * Why only `@tailwind utilities;`? Because including `@tailwind base;` would
+ * reset the host app's styles when imported, and `@tailwind components;`
+ * has nothing for us to emit. We just need the utility classes our JSX
+ * actually references.
+ */
+@tailwind utilities;
