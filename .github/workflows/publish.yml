@@ -1,0 +1,118 @@
+# Publish @metis-ai-research/feedback to npm.
+#
+# Triggered by publishing a GitHub Release, so the thing that decides a version
+# ships is a deliberate act with a changelog attached — not a push, and not a
+# merge. `workflow_dispatch` is there to retry a failed run without cutting a
+# second release.
+#
+# The guard job exists because of the failure mode this replaces: publishing by
+# hand from a laptop, where nothing checks that the tag you tagged and the
+# version in package.json are the same number. When they disagree, npm happily
+# publishes whatever package.json said and the release notes point at a version
+# that does not exist. That is silent, and it is only ever noticed later.
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v0.2.0)'
+        required: true
+        type: string
+
+concurrency:
+  # Never two publishes of the same tag at once. `cancel-in-progress` is
+  # deliberately false: cancelling a job midway through `npm publish` is how you
+  # get a half-published version.
+  group: publish-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `prepare` runs the build here, so a build failure stops the run before
+      # anything is published.
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Tag and package.json must agree
+        id: check
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag $TAG does not match package.json version $VERSION."
+            echo "::error::Expected the tag to be v$VERSION. Fix one of them and re-run."
+            exit 1
+          fi
+          echo "Tag $TAG matches package.json $VERSION."
+
+      - name: Version must not already be on the registry
+        run: |
+          VERSION="${{ steps.check.outputs.version }}"
+          # `npm view` exits non-zero when the exact version is absent, which is
+          # the case we want, so failure here is success. Distinguishing that
+          # from a network error is why this greps the output rather than
+          # trusting the exit code alone.
+          if npm view "@metis-ai-research/feedback@$VERSION" version 2>/dev/null | grep -q "$VERSION"; then
+            echo "::error::@metis-ai-research/feedback@$VERSION is already published. npm versions are immutable — bump the version."
+            exit 1
+          fi
+          echo "$VERSION is not on the registry yet."
+
+      - name: Show what would be published
+        run: npm pack --dry-run
+
+  publish:
+    name: Publish to npm
+    needs: verify
+    runs-on: ubuntu-latest
+    # `id-token: write` is what lets npm attach a provenance attestation, so the
+    # registry can show which workflow and which commit produced the tarball.
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@metis-ai-research/feedback/v/${{ needs.verify.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          # Required for auth to work: without it npm writes no registry line
+          # into .npmrc and NODE_AUTH_TOKEN is ignored.
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      # `--access public` is harmless now that 0.1.x is public and the scope has
+      # inherited it, but it is kept explicit: a scoped package defaults to
+      # restricted, and the one time that matters is a first publish.
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
