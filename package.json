@@ -1,7 +1,7 @@
 {
   "name": "@metis-ai-research/feedback",
-  "version": "0.1.1",
-  "description": "Drop-in feedback widget that posts to Linear (or your adapter of choice).",
+  "version": "0.2.0",
+  "description": "One feedback vocabulary and one client — post to Metis OS, or to Linear via your own adapter.",
   "license": "MIT",
   "author": "Metis AI Research",
   "type": "module",
@@ -35,6 +35,11 @@
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js",
       "require": "./dist/server.cjs"
+    },
+    "./metis": {
+      "types": "./dist/metis.d.ts",
+      "import": "./dist/metis.js",
+      "require": "./dist/metis.cjs"
     },
     "./adapters/linear": {
       "types": "./dist/adapters/linear.d.ts",

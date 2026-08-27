@@ -1,12 +1,89 @@
 # @metis-ai-research/feedback
 
-Drop-in customer feedback widget for React apps. Submits bug reports, general feedback, and feature requests directly to Linear (or any adapter you write).
+One feedback vocabulary, and two ways to deliver it.
 
+- **`./metis`** — framework-free client that posts to Metis OS, which holds the Linear credential for every project. No React, no DOM: imports from React Native as happily as from the web. **Start here.**
+- **`.` + `./server`** — the React widget and a self-hosted proxy, for a project that files its own tickets with its own key.
 - Floating widget UI with type selector, title, description, optional screenshot
-- Server-side proxy so your Linear API key never touches the browser
-- Honeypot + IP rate limit baked in
+- Honeypot + IP rate limit baked into the self-hosted handler
 - Pluggable adapters — Linear ships by default; bring your own for GitHub Issues, Slack, Plain, etc.
-- Auth-aware: pass the current user and their context flows through to the ticket
+
+---
+
+## The vocabulary
+
+Every caller sends one of these six, whichever delivery path it uses.
+
+| Key | Use it for |
+|---|---|
+| `bug` | Something is broken. |
+| `feature` | Asking for something that does not exist yet. |
+| `feedback` | A reaction to something that does. |
+| `question` | Wants an answer, not a change. |
+| `payment` | Charges, refunds, billing. |
+| `other` | None of the above. |
+
+**A form offers a subset. It never invents a key.** That distinction is the
+whole point: AroTaro's app omits `payment` because it retired purchases, which
+is a real product difference — four spellings of "something is broken" is not.
+
+What the person *reads* is your form's business, and localizing it is expected.
+`bug` can be labelled "Something's broken" in your picker; it still goes out as
+`bug`.
+
+---
+
+## Quick start (Metis OS)
+
+Nothing to host, no Linear key, and no server needed — a static page can use it.
+
+```ts
+import { createMetisFeedbackClient } from '@metis-ai-research/feedback/metis'
+
+// Both values come from the project's Feedback page in Metis OS.
+// The key is PUBLIC: it ships in your bundle either way, so it identifies the
+// caller rather than authenticating it. Commit it.
+const feedback = createMetisFeedbackClient({
+  source: 'blinc-site',
+  key: 'fbk_blinc-site_…',
+})
+
+const result = await feedback.send({
+  category: 'bug',
+  content: message,
+  name,
+  email,
+})
+
+if (!result.ok) {
+  // Show result.error and KEEP what they typed — losing four paragraphs to a
+  // 502 is worse than the outage. result.kind is 'offline' | 'invalid' | 'server'.
+}
+```
+
+Native clients pass `kind: 'app'`, which drops the `name` requirement and makes
+`email` optional, and should send `diagnostics`:
+
+```ts
+const feedback = createMetisFeedbackClient({
+  source: 'blinc-app',
+  key: 'fbk_blinc-app_…',
+  kind: 'app',
+  // Metis OS's error strings are English telemetry markers, never shown to
+  // users. Pass your own copy if your app is localized.
+  messages: { server: '送信できませんでした。' },
+})
+
+await feedback.send({
+  category: 'bug',
+  content: message,
+  diagnostics: { app: '1.4.0 (18302)', platform: 'Android 15 · Pixel 8', locale: 'ja-JP' },
+})
+```
+
+Read the app version from the **installed binary**, not from bundled config: an
+OTA update changes the JS and not the native version, and a report naming the
+wrong build sends triage the wrong way.
 
 ---
 
@@ -30,7 +107,14 @@ content: [
 
 ---
 
-## Quick start (Next.js App Router)
+## Quick start (self-hosted proxy + widget)
+
+Use this path when a project files its own tickets with its own Linear key —
+typically because it needs server-side enrichment the Metis OS contract has no
+slot for, such as authenticated user identity that must not be settable by the
+client.
+
+### Next.js App Router
 
 ### 1. Server route
 
