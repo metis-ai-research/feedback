@@ -25,6 +25,10 @@ export default defineConfig([
   {
     entry: {
       server: 'src/server.ts',
+      // `metis` belongs in THIS config, not the client one above: it must not
+      // carry the `'use client'` banner. It is framework-free and is imported
+      // from React Native and from server code, neither of which wants that.
+      metis: 'src/metis.ts',
       'adapters/linear': 'src/adapters/linear.ts',
     },
     format: ['esm', 'cjs'],

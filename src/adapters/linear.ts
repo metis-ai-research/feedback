@@ -45,10 +45,16 @@ export interface LinearAdapterOptions {
   titlePrefix?: Partial<Record<FeedbackType, string>> | false
 }
 
+// Total on purpose. Adding a category to the vocabulary should fail to compile
+// here until someone decides how its tickets are titled, rather than silently
+// producing unprefixed ones.
 const DEFAULT_PREFIX: Record<FeedbackType, string> = {
   bug: '[BUG]',
-  feedback: '[FEEDBACK]',
   feature: '[FEATURE]',
+  feedback: '[FEEDBACK]',
+  question: '[QUESTION]',
+  payment: '[PAYMENT]',
+  other: '[FEEDBACK]',
 }
 
 export function linearAdapter(opts: LinearAdapterOptions): FeedbackAdapter {
