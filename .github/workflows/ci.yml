@@ -1,0 +1,56 @@
+# Typecheck, test and build on every PR and every push to main.
+#
+# Added alongside the publish workflow rather than instead of it: publish.yml
+# re-runs these at release time, which is the last possible moment to find out
+# that main has been broken for a week. This is the same three commands, run
+# when the change arrives.
+#
+# Drop this file if you would rather not have PR checks — publish.yml does not
+# depend on it.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `prepare` builds during install, so this covers the build too — but the
+      # explicit step below keeps the failure legible when it is the build that
+      # broke rather than a dependency.
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: The metis entry must stay framework-free
+        # The whole reason `./metis` is importable from React Native. A stray
+        # `import React` or a 'use client' banner would not fail any test — it
+        # would fail at bundle time in someone else's app, which is a much worse
+        # place to find out.
+        run: |
+          if grep -q "use client" dist/metis.js dist/metis.cjs; then
+            echo "::error::dist/metis has a 'use client' banner. It must be built in the non-client tsup config."
+            exit 1
+          fi
+          if grep -qE "require\(['\"]react|from ['\"]react" dist/metis.js dist/metis.cjs; then
+            echo "::error::dist/metis imports react. The ./metis entry must stay framework-free."
+            exit 1
+          fi
+          echo "dist/metis is clean: no banner, no react."

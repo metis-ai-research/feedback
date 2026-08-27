@@ -338,6 +338,28 @@ Adapters must not throw on transport errors — return `{ ok: false, error }` in
 
 ---
 
+## Releasing
+
+Publishing is a GitHub Action, not something anyone runs from a laptop.
+
+1. Bump `version` in `package.json` and add a `CHANGELOG.md` entry. Merge that to `main`.
+2. Cut a **GitHub Release** tagged `v<version>` — the tag must match `package.json` exactly.
+3. `.github/workflows/publish.yml` typechecks, tests, builds, verifies the tag matches, verifies
+   the version is not already on the registry, and publishes with provenance.
+
+The tag check is the point of the workflow. Publishing by hand, nothing compares the tag you
+tagged with the version in `package.json`; when they disagree npm publishes whatever
+`package.json` said, and the release notes point at a version that does not exist. That is silent,
+and it is only ever noticed later.
+
+**Setup, once:** add an npm **automation** token as the `NPM_TOKEN` repository secret
+(npmjs.com → Access Tokens → Granular/Automation, write access to `@metis-ai-research/feedback`).
+Automation tokens bypass 2FA prompts, which classic tokens do not. Optionally create a `npm`
+[environment](../../settings/environments) to require a review before any publish runs.
+
+A failed run can be retried with **Actions → Publish → Run workflow**, passing the same tag —
+no need to cut a second release.
+
 ## License
 
 MIT © Metis AI Research Inc.
