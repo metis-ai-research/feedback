@@ -360,6 +360,14 @@ Automation tokens bypass 2FA prompts, which classic tokens do not. Optionally cr
 A failed run can be retried with **Actions → Publish → Run workflow**, passing the same tag —
 no need to cut a second release.
 
+**The workflow publishes an existing tag; it never creates one.** Dispatching it with a tag that
+does not exist yet fails at the first step and says so. If you want to publish without cutting a
+release, push the tag first:
+
+```bash
+git tag v0.2.0 && git push origin v0.2.0
+```
+
 ## License
 
 MIT © Metis AI Research Inc.
